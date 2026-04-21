@@ -1,112 +1,192 @@
-# Cestoda BUSCO Custom Lineage Builder (with Outgroup Filtering)
+# Cestoda BUSCO Custom Lineage Builder — Full Pipeline
 
 ## Overview
 
-This repository provides a **production-grade pipeline** to build a custom BUSCO lineage dataset for **Cestoda**, including:
+This repository contains a **complete, production-grade pipeline** to build a **custom BUSCO v6 lineage dataset for Cestoda**, from raw proteomes to validated BUSCO-compatible lineage.
 
-- Orthogroup-based marker selection
-- HMM construction and validation
-- **Explicit outgroup-aware filtering**
-- BUSCO v6-compatible dataset export
-- Full contract validation
+The pipeline is designed to ensure:
 
-This version ensures that **outgroups are treated as true outgroups**, not just additional taxa.
+- **Strict identifier contract consistency**
+- **Reproducibility and resumability**
+- **Robust error handling**
+- **Functional validity in BUSCO (not just structural correctness)**
 
 ---
 
-## Key Feature: Outgroup-Aware Filtering
+## What This Pipeline Solves
 
-Before exporting the final lineage (`cestoda_odb_custom_odb12`), markers are filtered using:
+Standard custom BUSCO lineage attempts often fail with:
 
-- Outgroup presence constraint
-- Outgroup single-copy behavior
+- “No jobs to run on hmmsearch”
+- 0 complete BUSCOs
+- 100% missing BUSCOs
 
-### Filtering criteria
+These failures are caused by **identifier contract inconsistencies**, including mismatches between:
 
-```text
+- FASTA IDs
+- Orthogroup IDs
+- HMM filenames
+- HMM internal NAME fields
+- scores_cutoff
+- refseq_db
+- BUSCO internal expectations
+
+This pipeline enforces a **single consistent identifier system end-to-end**.
+
+---
+
+## Full Pipeline Structure
+
+```
+00_setup_environment.sh
+01_retrieve_data.sh
+02_run_analysis.sh
+03_build_odb.sh
+04_test_cestoda_lineage.sh
+```
+
+### Step Descriptions
+
+#### 00_setup_environment.sh
+- Creates conda environment
+- Installs required tools:
+  - BUSCO v6
+  - HMMER
+  - OrthoFinder
+  - Python dependencies
+
+#### 01_retrieve_data.sh
+- Downloads proteomes used for lineage construction
+- Organizes input data
+
+#### 02_run_analysis.sh
+Core analytical pipeline:
+
+- Sequence QC
+- Longest isoform filtering
+- FASTA identifier audit (critical checkpoint)
+- OrthoFinder clustering
+- Alignment (MAFFT)
+- HMM construction
+- hmmsearch execution
+
+#### 03_build_odb.sh
+Lineage export:
+
+- Enforces **BUSCO identifier contract**
+- Generates:
+  - HMMs (renamed + NAME fixed)
+  - scores_cutoff
+  - refseq_db.faa.gz
+  - ancestral sequences
+  - metadata files
+- **Outgroup-aware filtering applied**
+- Full contract validation step
+
+#### 04_test_cestoda_lineage.sh
+Validation:
+
+- Runs BUSCO in:
+  - protein mode
+  - genome mode
+- Validates:
+  - dataset functionality
+  - performance metrics
+  - parsing robustness
+
+---
+
+## Key Design Principles
+
+### 1. Identifier Contract Integrity
+
+A single BUSCO ID is propagated across:
+
+- HMM filenames
+- HMM NAME fields
+- scores_cutoff
+- ogs.id.info
+- links_to_ODB12.txt
+- refseq_db headers
+
+No mixing of OG IDs and BUSCO IDs is allowed.
+
+---
+
+### 2. Outgroup-Aware Marker Filtering
+
+Outgroups are used explicitly to improve lineage specificity.
+
+Filtering criteria:
+
+```
 max_outgroup_presence_frac = 0.40
 max_outgroup_singlecopy_frac = 0.50
 ```
 
-This ensures:
-- Markers are conserved in Cestoda
-- Markers are not broadly conserved across outgroups
-- Lineage specificity is enforced
+Effect:
+
+- Removes overly conserved genes
+- Retains lineage-informative markers
 
 ---
 
-## Pipeline Structure
+### 3. Strict FASTA Validation
 
-```
-01_retrieve_data.sh
-02_run_analysis.sh
-03_build_odb_outgroup_filtered.sh   <-- THIS SCRIPT
-04_test_cestoda_lineage.sh
-```
+Pipeline fails early if:
+
+- Duplicate IDs exist
+- Empty IDs exist
+- Illegal characters detected
 
 ---
 
-## Download Script
+### 4. No Silent Reuse of Broken Outputs
 
-Download the build script directly:
+Critical steps reset outputs when needed to avoid:
 
-👉 [Download 03_build_odb_outgroup_filtered.sh](./03_build_odb_outgroup_filtered.sh)
+- stale artifacts
+- hidden inconsistencies
 
-Or via command line:
+---
+
+### 5. Functional Validation (Not Just Structure)
+
+Final dataset must:
+
+- Run in BUSCO genome mode
+- Run in BUSCO protein mode
+- Produce biologically meaningful scores
+
+---
+
+## How to Run
+
+### 1. Setup environment
 
 ```bash
-wget https://raw.githubusercontent.com/<YOUR_REPO>/main/03_build_odb_outgroup_filtered.sh
-chmod +x 03_build_odb_outgroup_filtered.sh
+bash 00_setup_environment.sh
 ```
 
----
-
-## Usage
-
-Run the lineage build:
+### 2. Retrieve data
 
 ```bash
-bash 03_build_odb_outgroup_filtered.sh
+bash 01_retrieve_data.sh
 ```
 
----
+### 3. Run analysis
 
-## Requirements
-
-- BUSCO v6
-- HMMER
-- Python 3
-- OrthoFinder (already used in previous steps)
-- hmmemit (from HMMER)
-
----
-
-## Output
-
-The final dataset will be created at:
-
-```
-cestoda_odb_custom_odb12/
+```bash
+bash 02_run_analysis.sh
 ```
 
-Containing:
+### 4. Build lineage
 
-- `hmms/` → HMM profiles (BUSCO ID renamed)
-- `scores_cutoff`
-- `links_to_ODB12.txt`
-- `refseq_db.faa.gz`
-- `ancestral`
-- `dataset.cfg`
-- `info/`
-  - `busco_id_map.tsv`
-  - `outgroup_filter_report.tsv`
-  - `ogs.id.info`
+```bash
+bash 03_build_odb.sh
+```
 
----
-
-## Validation
-
-After building, run:
+### 5. Validate lineage
 
 ```bash
 bash 04_test_cestoda_lineage.sh
@@ -114,23 +194,56 @@ bash 04_test_cestoda_lineage.sh
 
 ---
 
-## Notes
+## Output
 
-- This script **does NOT recompute upstream steps**
-- It only rebuilds the **final lineage export**
-- Safe to run without re-running step 02
+Final dataset:
+
+```
+cestoda_odb_custom_odb12/
+```
+
+Contains:
+
+- hmms/
+- scores_cutoff
+- refseq_db.faa.gz
+- ancestral
+- dataset.cfg
+- info/
 
 ---
 
-## Rationale
+## Validation Results (Example)
 
-Standard pipelines often:
-- include outgroups during orthogroup construction
-- but **do not enforce outgroup exclusion at export time**
+### Genome mode
 
-This implementation fixes that by:
-- explicitly filtering markers using outgroup signal
-- ensuring lineage specificity
+- ~54–85% Complete BUSCOs (depending on species)
+- Functional hmmsearch execution
+
+### Protein mode
+
+- ~80–85% Complete BUSCOs
+- Low missing fraction
+
+---
+
+## Important Notes
+
+- Step 03 can be rerun without repeating Step 02
+- Heavy computations are only in Step 02
+- Pipeline is designed for HPC environments
+
+---
+
+## Requirements
+
+- Linux environment
+- Conda
+- BUSCO v6
+- HMMER
+- OrthoFinder
+- MAFFT
+- Python 3
 
 ---
 
