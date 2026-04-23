@@ -83,7 +83,7 @@ Lineage export:
 - **Outgroup-aware filtering applied**
 - Full contract validation step
 
-#### 04_test_cestoda_lineage.sh
+#### 04_test_cestoda_lineage_both_modes.sh
 Validation:
 
 - Runs BUSCO in:
