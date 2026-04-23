@@ -189,7 +189,8 @@ bash 03_build_odb.sh
 ### 5. Validate lineage
 
 ```bash
-bash 04_test_cestoda_lineage.sh
+bash retrieve_testing_data.sh
+bash 04_test_cestoda_lineage_both_modes.sh
 ```
 
 ---
