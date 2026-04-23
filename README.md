@@ -41,8 +41,8 @@ This pipeline enforces a **single consistent identifier system end-to-end**.
 00_setup_environment.sh
 01_retrieve_data.sh
 02_run_analysis.sh
-03_build_odb.sh
-04_test_cestoda_lineage.sh
+03_build_odb_outgroup_filtered.sh
+04_test_cestoda_lineage_both_modes.sh
 ```
 
 ### Step Descriptions
@@ -70,7 +70,7 @@ Core analytical pipeline:
 - HMM construction
 - hmmsearch execution
 
-#### 03_build_odb.sh
+#### 03_build_odb_outgroup_filtered.sh
 Lineage export:
 
 - Enforces **BUSCO identifier contract**
@@ -183,7 +183,7 @@ bash 02_run_analysis.sh
 ### 4. Build lineage
 
 ```bash
-bash 03_build_odb.sh
+bash 03_build_odb_outgroup_filtered.sh
 ```
 
 ### 5. Validate lineage
